@@ -11,10 +11,10 @@ and the problems found along the way. Tool output (file dumps, command logs) is 
 
 **User:**
 > I'm doing a test assignment and need to start the project based on the architecture of my
-> `daily-mail` project. Build it in a neighbouring folder, start keeping *feature points* in a Markdown
+> existing project. Build it in a neighbouring folder, start keeping *feature points* in a Markdown
 > file, and use the UI template `DESIGN.md`. The spec is `ТЗ Frontend Engineer.pdf`. Build it properly
 > and by the architecture — I will review it. The most important thing is the correct separation of
-> business logic into layers. Use FSD, I think it'll be fine — just do it like in daily-mail.
+> business logic into layers. Use FSD, I think it'll be fine — do it like in my existing project.
 
 **Assistant — research:**
 - Read the spec: meeting-room booking for one working day (09:00–18:00), create/edit/delete, 8 business
@@ -23,12 +23,12 @@ and the problems found along the way. Tool output (file dumps, command logs) is 
   `GET/POST/PATCH/DELETE /api/bookings`, mock server allowed.
 - Read `DESIGN.md` ("Flying Papers": dusk-violet stage, bone-white cards, hi-vis-yellow outlined actions,
   6px cards / 100px pills, no shadows).
-- Read daily-mail: `ARCHITECTURE.md` (FSD with `app-layer/` and `pages-layer/` renamed for the Next
+- Read the reference project: `ARCHITECTURE.md` (FSD with `app-layer/` and `pages-layer/` renamed for the Next
   router), `biome.json`, `tsconfig.json`, the `shared/api` idioms (`ApiError`, centralised `queryKeys`,
   `makeQueryClient` with "4xx are answers, don't retry"), and an entity/feature pair as a style reference.
 
 **Assistant — plan (stated before coding):**
-- Same stack as daily-mail: Next 16, React 19, strict TS, Tailwind v4, TanStack Query, RHF + Zod,
+- Same stack as the reference project: Next 16, React 19, strict TS, Tailwind v4, TanStack Query, RHF + Zod,
   Biome, Vitest.
 - Business rules as pure functions in `entities/booking/model`. The mock server imports the same
   functions, so the client and the server cannot drift apart.
@@ -108,3 +108,9 @@ Verification at the end of this step: `pnpm verify` (type-check + Biome + FSD ru
 > Time spent — 1 hour. Write the AI chat in English and push it.
 
 **Assistant:** filled in the time in the README, added this log, linked it from the README, pushed.
+
+**User:**
+> Remove extra words like references to my other project, and push in English.
+
+**Assistant:** removed references to the other project and translated the README, `ARCHITECTURE.md`,
+`docs/FEATURES.md` and the ADRs into English. The UI text stays in Russian, matching the assignment.

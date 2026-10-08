@@ -1,26 +1,28 @@
-# ADR-0002: Одни бизнес-правила для клиента и mock-сервера
+# ADR-0002: One set of business rules for the client and the mock server
 
 - **Status:** Accepted
 - **Date:** 2026-10-08
 
 ## Context
 
-Правила (рабочий день, длительность, пересечения, прошлое) проверяют дважды: в форме — чтобы сразу показать
-ошибку, на сервере — потому что последнее слово за ним (правило 8 ТЗ). Две копии правил рано или поздно расходятся.
+The rules (working day, duration, overlaps, past) are checked twice: in the form, to show an error
+immediately, and on the server, because the server has the last word (rule 8). Two copies of the rules
+drift apart sooner or later.
 
 ## Decision
 
-Правила — чистые функции в `entities/booking/model` (`validateBookingDraft` и др.). Они не зависят от React,
-сети и системных часов: «сейчас» передаётся аргументом. Сервис mock-API импортирует их через отдельный вход
-`@/entities/booking/model`, потому что основной `index.ts` слайса тянет хуки React Query, а им не место
-в route handler. Это единственное исключение из правила public API, и оно прописано в `check-architecture.mjs`.
+The rules are pure functions in `entities/booking/model` (`validateBookingDraft` and friends), independent of
+React, the network and the system clock: "now" is an argument. The mock API service imports them through a
+separate entry point, `@/entities/booking/model`, because the slice's main `index.ts` pulls in React Query
+hooks that do not belong in a route handler. This is the only exception to the public-API rule and it is
+encoded in `check-architecture.mjs`.
 
-Домен возвращает **коды** нарушений. Клиент сам подбирает формулировку (`violationMessage`) и ветвится
-по `code`, а не по тексту сервера.
+The domain returns violation **codes**. The client picks the wording (`violationMessage`) and branches on
+`code`, never on the server's text.
 
 ## Consequences
 
-- (+) Форма и сервер не могут разойтись. Тесты правил покрывают обе стороны.
-- (+) Реальный бэкенд, скорее всего, будет на другом языке. Тогда клиентская копия останется как
-  «быстрая проверка», а сервер — источником истины. Код клиента от этого не меняется.
-- (−) Второй вход в слайс нужно помнить. Ошибку ловит линтер архитектуры.
+- (+) The form and the server cannot disagree; the rule tests cover both sides.
+- (+) A real backend will likely be written in another language. The client copy then stays as a fast
+  pre-check and the server remains the source of truth — no client code changes.
+- (−) The second entry point must be remembered; the architecture linter catches mistakes.

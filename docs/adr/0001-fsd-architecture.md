@@ -5,22 +5,23 @@
 
 ## Context
 
-Тестовое задание оценивает разделение бизнес-логики на слои и отделение API от UI. Команда уже работает
-с FSD в daily-mail. Если повторить там же принятые соглашения, ревьюеру будет проще читать код.
+The assignment evaluates how business logic is split into layers and how the API is separated from the UI.
+The structure must make those boundaries obvious to a reviewer and keep them from eroding.
 
-## Considered Options
+## Considered options
 
-1. **Плоская структура** (`components/`, `hooks/`, `utils/`): быстро на старте, но границы не видны.
-2. **Clean Architecture** (domain/application/infrastructure): чистые границы, но чужая идиома для фронтенда.
-3. **FSD**, как в daily-mail: явные слои, правила импортов, их можно проверить автоматически.
+1. **Flat structure** (`components/`, `hooks/`, `utils/`): fast to start, boundaries are invisible.
+2. **Clean Architecture** (domain / application / infrastructure): clear boundaries, but an unusual idiom for a frontend.
+3. **FSD**: explicit layers and import rules that can be checked automatically.
 
 ## Decision
 
-FSD с адаптацией daily-mail (`app-layer/`, `pages-layer/`). Домен — сегмент `model` слайса `entities/booking`,
-без фреймворков. Правила импортов проверяет `scripts/check-architecture.mjs` (`pnpm lint:arch`).
+FSD, with `app-layer/` and `pages-layer/` renamed to avoid the Next.js router folders. The domain is the
+framework-free `model` segment of the `entities/booking` slice. Import rules are enforced by
+`scripts/check-architecture.mjs` (`pnpm lint:arch`).
 
 ## Consequences
 
-- (+) Бизнес-правила, сеть и UI разнесены так, что каждое можно заменить отдельно.
-- (+) Нарушение слоёв ловит скрипт, а не только код-ревью.
-- (−) Для одного экрана получается много папок. Это сознательная плата за наглядность.
+- (+) Business rules, network and UI are separated so each can be replaced on its own.
+- (+) Layer violations are caught by a script, not only by code review.
+- (−) Many folders for a single screen — a deliberate price for clarity.

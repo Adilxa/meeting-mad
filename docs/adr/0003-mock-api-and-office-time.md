@@ -1,28 +1,30 @@
-# ADR-0003: Mock API на Route Handlers и время офиса
+# ADR-0003: Mock API on Route Handlers and office time
 
 - **Status:** Accepted
 - **Date:** 2026-10-08
 
 ## Context
 
-Нужен сервер, который валидирует правила и умеет отвечать 409. Сетевой слой должен легко заменяться
-на реальный API. Правило «нельзя в прошлое» зависит от того, *чьё* сейчас время.
+A server is needed that validates the rules and can answer 409. The network layer must be easy to replace
+with a real API. The "no past" rule depends on *whose* "now" it is.
 
 ## Decision
 
-- **Route Handlers + in-memory**, а не MSW. Запросы проходят через настоящий HTTP: тот же `fetch`, те же
-  статусы, видно во вкладке Network. Клиент не знает, что сервер — mock. Переход на реальный бэкенд =
-  `NEXT_PUBLIC_API_URL`.
-- Сервер устроен как приложение: `service` (правила, классификация 409/422/404) → `BookingRepository`
-  (интерфейс) → `InMemoryBookingRepository`.
-- **409 по требованию**: заголовок `x-mock-scenario: race` заставляет сервер занять слот «за коллегу»
-  перед обработкой запроса. В UI это чекбокс «Демо». Без него воспроизвести гонку можно только вслепую.
-- Искусственная задержка `MOCK_LATENCY_MS` (400 мс), чтобы были видны состояния загрузки и отправки.
-- **Время офиса**: `Asia/Almaty` (env `NEXT_PUBLIC_OFFICE_TIME_ZONE`). И браузер, и сервер считают
-  «сегодня/сейчас» в этом поясе через `Intl`. Первый клиентский рендер берёт время серверного рендера,
-  поэтому гидрация не расходится.
+- **Route Handlers + in-memory storage** rather than MSW. Requests go over real HTTP: the same `fetch`, the
+  same statuses, visible in the Network tab. The client does not know the server is a mock. Switching to a
+  real backend = `NEXT_PUBLIC_API_URL`.
+- The server is structured like an application: `service` (rules, 409/422/404 classification) →
+  `BookingRepository` (interface) → `InMemoryBookingRepository`.
+- **409 on demand**: the `x-mock-scenario: race` header makes the server book the slot "for a colleague"
+  right before handling the request. In the UI this is the "Demo" checkbox; without it a race could only be
+  reproduced by luck.
+- Artificial latency `MOCK_LATENCY_MS` (400 ms) so loading and submitting states are visible.
+- **Office time**: `Asia/Almaty` (env `NEXT_PUBLIC_OFFICE_TIME_ZONE`). Both browser and server compute
+  "today / now" in that zone via `Intl`. The first client render reuses the server render's instant, so
+  hydration never mismatches.
 
 ## Consequences
 
-- (−) На serverless (Vercel) у каждого инстанса своя память: данные демо могут «прыгать» и сбрасываться
-  при холодном старте. Лечится реализацией `BookingRepository` на KV/Postgres — сервис и клиент не меняются.
+- (−) On serverless (Vercel) every instance has its own memory: demo data may jump between instances and
+  reset on a cold start. Fixed by a KV / Postgres `BookingRepository` — neither the service nor the client
+  changes.

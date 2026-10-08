@@ -1,83 +1,84 @@
 # Architecture: Feature-Sliced Design (FSD)
 
-Структура та же, что в daily-mail: [Feature-Sliced Design](https://feature-sliced.design/), слои `app-layer/` и `pages-layer/`
-переименованы, чтобы не конфликтовать с App Router.
+The project follows [Feature-Sliced Design](https://feature-sliced.design/). The `app` and `pages` layers are
+renamed to `app-layer/` and `pages-layer/` so they do not collide with the Next.js App Router.
 
 ## Layers (top to bottom)
 
-| Layer | Folder | Здесь | Что в нём |
-|-------|--------|-------|-----------|
-| **app** (routing) | `src/app/` | `layout.tsx`, `page.tsx`, `api/bookings/**` | Только маршрутизация Next. Route handlers — тонкие адаптеры к `src/server` |
-| **app-layer** | `src/app-layer/` | `Providers`, `globals.css`, шрифты | Инициализация приложения, дизайн-токены |
-| **pages** | `src/pages-layer/` | `booking` | Композиция страницы. Хранит только состояние «что выбрано/редактируется» |
-| **widgets** | `src/widgets/` | `day-schedule`, `booking-panel` | Самостоятельные блоки UI со своими состояниями (загрузка/ошибка/пусто) |
-| **features** | `src/features/` | `select-date`, `save-booking`, `delete-booking`, `simulate-race` | Пользовательские действия |
-| **entities** | `src/entities/` | `booking` | Бизнес-сущность: доменная модель, API, базовый UI |
-| **shared** | `src/shared/` | `api`, `config`, `lib`, `hooks`, `ui` | Инфраструктура без бизнес-смысла |
+| Layer | Folder | Here | Purpose |
+|-------|--------|------|---------|
+| **app** (routing) | `src/app/` | `layout.tsx`, `page.tsx`, `api/bookings/**` | Next routing only. Route handlers are thin adapters to `src/server` |
+| **app-layer** | `src/app-layer/` | `Providers`, `globals.css`, fonts | App initialisation, design tokens |
+| **pages** | `src/pages-layer/` | `booking` | Page composition. Holds only "what is selected / being edited" |
+| **widgets** | `src/widgets/` | `day-schedule`, `booking-panel` | Self-contained UI blocks with their own states (loading / error / empty) |
+| **features** | `src/features/` | `select-date`, `save-booking`, `delete-booking`, `simulate-race` | User actions |
+| **entities** | `src/entities/` | `booking` | Business entity: domain model, API, base UI |
+| **shared** | `src/shared/` | `api`, `config`, `lib`, `hooks`, `ui` | Infrastructure with no business meaning |
 
-Вне FSD — **`src/server/`**: mock-бэкенд. Это «чужая система», с которой клиент общается только по HTTP.
+Outside FSD is **`src/server/`** — the mock backend. It is treated as a foreign system the client talks to
+over HTTP only.
 
-## The Rules
+## The rules
 
-Проверяются автоматически: `pnpm lint:arch` (`scripts/check-architecture.mjs`).
+Enforced automatically by `pnpm lint:arch` (`scripts/check-architecture.mjs`).
 
-1. **Слой импортирует только из слоёв ниже.** `features → entities` ✅, `entities → features` ❌.
-2. **Слайсы одного слоя не знают друг о друге.** `save-booking` и `delete-booking` объединяет виджет `booking-panel`, а не прямой импорт.
-3. **Только public API.** Снаружи слайса — `@/entities/booking`, а не `@/entities/booking/api/booking-dto`.
-   В `shared` — по сегментам: `@/shared/api`, `@/shared/lib`.
-4. **`src/server` доступен только route handlers** (`src/app/api/**`).
-5. **Server-safe модули без фреймворков**: `shared/lib`, `shared/config`, `entities/*/model`, `src/server`
-   не импортируют React / React Query. Их загружают route handlers.
+1. **A layer imports only from layers below it.** `features → entities` ✅, `entities → features` ❌.
+2. **Slices of one layer do not know about each other.** `save-booking` and `delete-booking` are combined
+   by the `booking-panel` widget, not by a direct import.
+3. **Public API only.** Outside a slice use `@/entities/booking`, never `@/entities/booking/api/booking-dto`.
+   `shared` is imported by segment: `@/shared/api`, `@/shared/lib`.
+4. **`src/server` is reachable only from route handlers** (`src/app/api/**`).
+5. **Server-safe modules are framework-free**: `shared/lib`, `shared/config`, `entities/*/model` and
+   `src/server` import no React / React Query, because route handlers load them.
 
-## Где живёт бизнес-логика
-
-Главное в этом проекте — разделение ответственности по слоям:
+## Where the business logic lives
 
 ```
                  ┌──────────────────────────────────────────────┐
-  pages-layer    │ BookingPage — дата, что редактируется         │  композиция
+  pages-layer    │ BookingPage — date, what is being edited     │  composition
                  └───────────────┬──────────────────────────────┘
-  widgets        DaySchedule (таймлайн + состояния)   BookingPanel (форма | просмотр | приглашение)
+  widgets        DaySchedule (timeline + states)   BookingPanel (form | read-only | invitation)
                                  │
   features       select-date   save-booking            delete-booking
-                               ├ model/form-schema   ← схема формы = доменные правила
-                               └ model/use-booking-submit ← ответ сервера → состояние формы
+                               ├ model/form-schema   ← form schema = domain rules
+                               └ model/use-booking-submit ← server answer → form state
                                  │
-  entities/booking  model/  ← ДОМЕН: правила, расписание, типы. Чистый TS, без React и сети
-                    api/    ← эндпоинты, DTO ↔ домен, ошибки → BookingRequestError, хуки Query
-                    lib/    ← формулировки нарушений, форматирование
+  entities/booking  model/  ← DOMAIN: rules, schedule, types. Pure TS, no React, no network
+                    api/    ← endpoints, DTO ↔ domain, errors → BookingRequestError, Query hooks
+                    lib/    ← violation wording, formatting
                     ui/     ← BookingBlock
                                  │
-  shared            api/ (fetch, ApiError, QueryClient, keys)  lib/ (время, часовой пояс)  ui/ (кит)
+  shared            api/ (fetch, ApiError, QueryClient, keys)  lib/ (time, time zone)  ui/ (kit)
 
-  src/server        service (тот же validateBookingDraft) → repository (interface) → in-memory
+  src/server        service (same validateBookingDraft) → repository (interface) → in-memory
 ```
 
-- **Домен** (`entities/booking/model`) отвечает на вопрос «можно ли так?» и возвращает **коды** нарушений
-  (`OVERLAP`, `TOO_LONG`…), а не строки. «Сейчас» и список броней передаются аргументами, поэтому функции
-  детерминированы и легко тестируются.
-- **API-сегмент** сущности — единственное место, которое знает URL'ы и форму DTO. Сырой `ApiError` дальше
-  не уходит: он превращается в размеченный союз `BookingRequestError` (`conflict | validation | not-found | locked | network | unknown`).
-- **Фича** решает, *что делать* с ответом: 422 раскладывается по полям, 409/404/сеть показываются баннером,
-  ввод не сбрасывается. Хуки мутаций обновляют расписание *до* того, как форма реагирует на ошибку.
-- **UI** ничего не валидирует сам — он рисует то, что сказал домен.
+- The **domain** (`entities/booking/model`) answers "is this allowed?" and returns violation **codes**
+  (`OVERLAP`, `TOO_LONG`, …), not strings. "Now" and the list of bookings are arguments, so the functions
+  are deterministic and easy to test.
+- The entity's **API segment** is the only place that knows URLs and the DTO shape. A raw `ApiError` never
+  leaves it: it becomes the discriminated union `BookingRequestError`
+  (`conflict | validation | not-found | locked | network | unknown`).
+- The **feature** decides *what to do* with an answer: 422 is spread over fields; 409 / 404 / network become a
+  banner; the input is never reset. Mutation hooks refresh the schedule *before* the form reacts to an error.
+- The **UI** validates nothing by itself — it renders what the domain said.
 
-### Почему у `entities/booking` два входа
+### Why `entities/booking` has two entry points
 
-`@/entities/booking` — полный public API (с хуками React Query). `@/entities/booking/model` — доменное ядро
-без фреймворков, для `src/server`. Это единственное разрешённое исключение из правила 3,
-см. [ADR-0002](docs/adr/0002-shared-domain-rules.md).
+`@/entities/booking` is the full public API (including React Query hooks). `@/entities/booking/model` is
+the framework-free domain kernel for `src/server`. It is the only sanctioned exception to rule 3 — see
+[ADR-0002](docs/adr/0002-shared-domain-rules.md).
 
 ## Design system
 
-Токены из `docs/DESIGN.md` (Flying Papers) лежат в `src/app-layer/styles/globals.css` (`@theme` Tailwind v4).
-Отступления ради доступности:
+Tokens from `docs/DESIGN.md` live in `src/app-layer/styles/globals.css` (Tailwind v4 `@theme`).
+Deviations for accessibility:
 
-- Мелкий текст на фиолетовой «сцене» (`#8584bd`) не проходит AA, поэтому интерактив и текст стоят на
-  блоках Lilac Shadow (`#61609a`) или Bone White. Жёлтый и кремовый текст на Lilac дают ≥4.5:1.
-- Шрифты-замены: ObviouslyVariable → **Unbounded** (широкий геометрический, есть кириллица),
+- Small text on the violet stage (`#8584bd`) fails AA, so interactive elements and text sit on Lilac Shadow
+  (`#61609a`) or Bone White blocks, where yellow and cream text reach ≥ 4.5:1.
+- Font substitutes: ObviouslyVariable → **Unbounded** (wide geometric, has Cyrillic),
   Degular → Inter, Bergen Mono → JetBrains Mono.
-- Шрифтов размером 184–341px нет: это рабочий интерфейс, а не постер. Заголовок даты — `clamp(2.5rem, 7vw, 5.5rem)`.
+- No 184–341px poster type: this is a working tool. The date heading is `clamp(2.5rem, 7vw, 5.5rem)`.
 
 ## Path aliases
 
