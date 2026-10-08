@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+/*
+ * Flying Papers design tokens (docs/DESIGN.md). Flat riso surfaces: no shadows, 6px cards,
+ * 100px pills. Contrast is tuned for WCAG AA — see ARCHITECTURE.md › Design system.
+ */
+@theme {
+  --color-dusk-violet: #8584bd;
+  --color-hi-vis: #f4ed36;
+  --color-buttery: #f9cc73;
+  --color-lilac: #61609a;
+  --color-bubblegum: #f8c1ba;
+  --color-matcha: #b5c995;
+  --color-magenta: #ac4f98;
+  --color-firecracker: #c94245;
+  --color-bone: #f9f5f2;
+  --color-ink: #1a1a1a;
+
+  --font-display: var(--font-unbounded), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-card: 6px;
+  --radius-pill: 100px;
+
+  --spacing-card: 17px;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    background: var(--color-dusk-violet);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .font-display {
+    font-feature-settings: "calt" 0;
+  }
+}
+
+@layer utilities {
+  /* One visible focus style everywhere: thick, flat, never a glow. */
+  .focus-ring {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+  .focus-ring:focus-visible {
+    outline-color: var(--color-ink);
+    outline-width: 3px;
+  }
+  .on-dark .focus-ring:focus-visible,
+  .on-dark.focus-ring:focus-visible {
+    outline-color: var(--color-hi-vis);
+  }
+
+  .bg-past-stripes {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      color-mix(in srgb, var(--color-lilac) 18%, transparent) 0 6px,
+      transparent 6px 12px
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: a user preference must beat any component style */
+    transition-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: same as above */
+    animation-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,3 @@
+allowBuilds:
+  # next/image's optional optimiser; this app serves no raster images, nothing to compile.
+  sharp: false
